@@ -10,11 +10,17 @@ extern crate log;
 extern crate env_logger;
 extern crate serde;
 extern crate url;
+#[macro_use]
+extern crate diesel;
 
+mod schema;
 mod consts;
+mod models;
 mod routes;
 mod utils;
 mod types;
+mod db;
+mod dto;
 
 use hyper::{service::{service_fn}, Server, Request, Body, Method, rt};
 use std::net::SocketAddr;
@@ -22,11 +28,15 @@ use futures::future::*;
 
 use routes::{book, general};
 use types::response::ResponseFuture;
+use db::create_db_connection;
 
 fn create_router(req: Request<Body>) -> ResponseFuture {
+    let db_conn = create_db_connection();
+
     match (req.method(), req.uri().path()) {
-        (&Method::GET, "/api/v1/books") => book::get_all_books(req),
-        (&Method::POST, "/api/v1/book") => book::create_book(req),
+        (&Method::GET, "/api/v1/books") => book::get_all_books(req, &db_conn),
+        (&Method::POST, "/api/v1/book/id") => book::get_book_by_id(req, &db_conn),
+        (&Method::POST, "/api/v1/book") => book::create_book(req, &db_conn),
         _ => general::not_found_handler()
     }
 }
